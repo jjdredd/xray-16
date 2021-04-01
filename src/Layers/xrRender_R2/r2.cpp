@@ -1,12 +1,15 @@
 #include "stdafx.h"
-#include "Layers/xrRender/FBasicVisual.h"
+
+#include "xrCore/Threading/TaskManager.hpp"
+
 #include "xrEngine/xr_object.h"
 #include "xrEngine/CustomHUD.h"
 #include "xrEngine/IGame_Persistent.h"
 #include "xrEngine/Environment.h"
 #include "xrEngine/GameFont.h"
 #include "xrEngine/PerformanceAlert.hpp"
-#include "xrEngine/TaskScheduler.hpp"
+
+#include "Layers/xrRender/FBasicVisual.h"
 #include "Layers/xrRender/SkeletonCustom.h"
 #include "Layers/xrRender/LightTrack.h"
 #include "Layers/xrRender/dxWallMarkArray.h"
@@ -617,8 +620,8 @@ void CRender::BeforeFrame()
 {
     if (IGame_Persistent::MainMenuActiveOrLevelNotExist())
         return;
-    // MT-HOM (@front)
-    Device.seqParallel.insert(Device.seqParallel.begin(), fastdelegate::FastDelegate0<>(&HOM, &CHOM::MT_RENDER));
+
+    ProcessHOMTask = &TaskScheduler->AddTask("MT-HOM", { &HOM, &CHOM::MT_RENDER });
 }
 
 void CRender::OnFrame()

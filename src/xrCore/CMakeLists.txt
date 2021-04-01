@@ -12,8 +12,6 @@ set(SRC_FILES
     "_color.h"
     "_compressed_normal.cpp"
     "_compressed_normal.h"
-    "cpuid.cpp"
-    "cpuid.h"
     "crc32.cpp"
     "_cylinder.h"
     "dump_string.cpp"
@@ -91,6 +89,8 @@ set(SRC_FILES
     "xrDebug.cpp"
     "xrDebug.h"
     "xrDebug_macros.h"
+    "xr_cpuid.cpp"
+    "xr_cpuid.h"
     "xr_ini.cpp"
     "xr_ini.h"
     "xrMemory.cpp"
@@ -179,6 +179,8 @@ set(SRC_FILES
     "Threading/Lock.hpp"
     "Threading/ScopeLock.cpp"
     "Threading/ScopeLock.hpp"
+    "Threading/ParallelFor.hpp"
+    "Threading/ParallelForEach.hpp"
     "Threading/Task.cpp"
     "Threading/Task.hpp"
     "Threading/TaskManager.cpp"
@@ -233,14 +235,12 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/Externals/mimalloc/include
-    ${TBB_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
     pthread
     ${SDL_LIBRARIES}
-    ${TBB_LIBRARIES}
     ${CRYPTO++_LIBRARIES}
     PRIVATE
     xrMiscMath
@@ -259,10 +259,12 @@ target_compile_definitions(${PROJECT_NAME}
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     PREFIX ""
-    COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h"
 )
 
-cotire(${PROJECT_NAME})
+target_precompile_headers(${PROJECT_NAME}
+    PRIVATE
+    "stdafx.h"
+)
 
 install(TARGETS ${PROJECT_NAME} LIBRARY
     DESTINATION ${CMAKE_INSTALL_LIBDIR}

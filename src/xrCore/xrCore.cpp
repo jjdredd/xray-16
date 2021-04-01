@@ -16,6 +16,8 @@
 #include "xrCore.h"
 #include "Math/MathUtil.hpp"
 #include "xrCore/_std_extensions.h"
+#include "Threading/TaskManager.hpp"
+
 #include "SDL.h"
 
 #if __has_include(".GitInfo.hpp")
@@ -207,6 +209,7 @@ xrCore::xrCore()
 
 void xrCore::Initialize(pcstr _ApplicationName, pcstr commandLine, LogCallback cb, bool init_fs, pcstr fs_fname, bool plugin)
 {
+    Threading::SetThreadName(NULL, "X-Ray Primary thread");
     xr_strcpy(ApplicationName, _ApplicationName);
     if (0 == init_counter)
     {
@@ -315,8 +318,9 @@ void xrCore::Initialize(pcstr _ApplicationName, pcstr commandLine, LogCallback c
         Msg("\ncommand line %s\n", Params);
         _initialize_cpu();
 #if defined(XR_ARCHITECTURE_X86) || defined(XR_ARCHITECTURE_X64)
-        R_ASSERT(SDL_HasSSE());
+        // R_ASSERT(CPU::ID.hasFeature(CpuFeature::SSE));
 #endif
+        TaskScheduler = xr_make_unique<TaskManager>();
         XRay::Math::Initialize();
         // xrDebug::Initialize ();
 
@@ -381,6 +385,7 @@ void xrCore::_destroy()
             xr_free(buffer);
             xr_delete(trained_model);
         }
+        TaskScheduler = nullptr;
         xr_free(Params);
         Memory._destroy();
     }
@@ -389,19 +394,19 @@ void xrCore::_destroy()
 constexpr pcstr xrCore::GetBuildConfiguration()
 {
 #ifdef NDEBUG
-#ifdef XR_ARCHITECTURE_X64
+#if defined(XR_ARCHITECTURE_X64) || defined(XR_ARCHITECTURE_E2K)
     return "Rx64";
 #else
     return "Rx86";
 #endif
 #elif defined(MIXED)
-#ifdef XR_ARCHITECTURE_X64
+#if defined(XR_ARCHITECTURE_X64) || defined(XR_ARCHITECTURE_E2K)
     return "Mx64";
 #else
     return "Mx86";
 #endif
 #else
-#ifdef XR_ARCHITECTURE_X64
+#if defined(XR_ARCHITECTURE_X64) || defined(XR_ARCHITECTURE_E2K)
     return "Dx64";
 #else
     return "Dx86";

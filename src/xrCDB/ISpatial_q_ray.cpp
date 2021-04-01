@@ -8,10 +8,12 @@
 
 #pragma warning(push)
 #pragma warning(disable : 4995)
-#if defined(XR_ARCHITECTURE_X86) || defined(XR_ARCHITECTURE_X64)
+#if defined(XR_ARCHITECTURE_X86) || defined(XR_ARCHITECTURE_X64) || defined(XR_ARCHITECTURE_E2K)
 #include <xmmintrin.h>
 #elif defined(XR_ARCHITECTURE_ARM) || defined(XR_ARCHITECTURE_ARM64)
 #include "sse2neon/sse2neon.h"
+#else
+#error Add your platform here
 #endif
 #pragma warning(pop)
 
@@ -343,7 +345,7 @@ void ISpatial_DB::q_ray(
     Stats.Query.Begin();
     q_result = &R;
     q_result->clear();
-    if (SDL_HasSSE())
+    if (CPU::ID.hasFeature(CpuFeature::SSE))
     {
         if (_o & O_ONLYFIRST)
         {

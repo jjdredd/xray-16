@@ -16,7 +16,7 @@
 #endif
 
 #elif defined(XR_PLATFORM_LINUX) || defined(XR_PLATFORM_FREEBSD)
-#if defined(XR_ARCHITECTURE_X86) || defined(XR_ARCHITECTURE_X64)
+#if defined(XR_ARCHITECTURE_X86) || defined(XR_ARCHITECTURE_X64) || defined(XR_ARCHITECTURE_E2K)
 #include <x86intrin.h> // __rdtsc
 #elif defined(XR_ARCHITECTURE_ARM)
 #include <sys/syscall.h>
@@ -254,7 +254,7 @@ XRCORE_API u64 GetCLK()
 
 #elif defined(XR_COMPILER_GCC)
 
-#if defined(XR_ARCHITECTURE_X86) || defined(XR_ARCHITECTURE_X64)
+#if defined(XR_ARCHITECTURE_X86) || defined(XR_ARCHITECTURE_X64) || defined(XR_ARCHITECTURE_E2K)
     return __rdtsc();
 #elif defined(XR_ARCHITECTURE_ARM)
     long long result = 0;
@@ -351,22 +351,47 @@ u32 cpufreq()
 //------------------------------------------------------------------------------------
 void _initialize_cpu()
 {
+    // General CPU identification
+    if (!query_processor_info(&CPU::ID))
+        Log("! Can't detect CPU/FPU.");
+
+    Msg("* Detected CPU: %s [%s], F%d/M%d/S%d, 'rdtsc'", CPU::ID.modelName,
+        +CPU::ID.vendor, CPU::ID.family, CPU::ID.model, CPU::ID.stepping);
 
     string256 features;
     xr_strcpy(features, sizeof(features), "RDTSC");
-    if (SDL_HasAltiVec()) xr_strcat(features, ", AltiVec");
-    if (SDL_HasMMX()) xr_strcat(features, ", MMX");
-    if (SDL_Has3DNow()) xr_strcat(features, ", 3DNow!");
-    if (SDL_HasSSE()) xr_strcat(features, ", SSE");
-    if (SDL_HasSSE2()) xr_strcat(features, ", SSE2");
-    if (SDL_HasSSE3()) xr_strcat(features, ", SSE3");
-    if (SDL_HasSSE41()) xr_strcat(features, ", SSE4.1");
-    if (SDL_HasSSE42()) xr_strcat(features, ", SSE4.2");
-    if (SDL_HasAVX()) xr_strcat(features, ", AVX");
-    if (SDL_HasAVX2()) xr_strcat(features, ", AVX2");
+
+    if (CPU::ID.hasFeature(CpuFeature::InvariantTSC))
+        xr_strcat(features, ", Invariant TSC");
+    if (CPU::ID.hasFeature(CpuFeature::MMX))
+        xr_strcat(features, ", MMX");
+    if (CPU::ID.hasFeature(CpuFeature::AltiVec))
+        xr_strcat(features, ", AltiVec");
+    if (CPU::ID.hasFeature(CpuFeature::_3DNow))
+        xr_strcat(features, ", 3DNow!");
+    if (CPU::ID.hasFeature(CpuFeature::SSE))
+        xr_strcat(features, ", SSE");
+    if (CPU::ID.hasFeature(CpuFeature::SSE2))
+        xr_strcat(features, ", SSE2");
+    if (CPU::ID.hasFeature(CpuFeature::SSE3))
+        xr_strcat(features, ", SSE3");
+    if (CPU::ID.hasFeature(CpuFeature::MWait))
+        xr_strcat(features, ", MONITOR/MWAIT");
+    if (CPU::ID.hasFeature(CpuFeature::SSSE3))
+        xr_strcat(features, ", SSSE3");
+    if (CPU::ID.hasFeature(CpuFeature::SSE41))
+        xr_strcat(features, ", SSE4.1");
+    if (CPU::ID.hasFeature(CpuFeature::SSE42))
+        xr_strcat(features, ", SSE4.2");
+    if (CPU::ID.hasFeature(CpuFeature::HyperThreading))
+        xr_strcat(features, ", HTT");
+    if (CPU::ID.hasFeature(CpuFeature::AVX))
+        xr_strcat(features, ", AVX");
+    if (CPU::ID.hasFeature(CpuFeature::AVX2))
+        xr_strcat(features, ", AVX2");
 
     Msg("* CPU features: %s", features);
-    Msg("* CPU cores/threads: %d/%d", SDL_GetCPUCount(), std::thread::hardware_concurrency());
+    Msg("* CPU cores/threads: %d/%d", CPU::ID.n_cores, CPU::ID.n_threads);
 
 #if defined(XR_PLATFORM_WINDOWS)
     SYSTEM_INFO sysInfo;
@@ -424,7 +449,7 @@ void _initialize_cpu_thread()
     else
         FPU::m24r();
 
-    if (SDL_HasSSE())
+    if (CPU::ID.hasFeature(CpuFeature::SSE))
     {
         //_mm_setcsr ( _mm_getcsr() | (_MM_FLUSH_ZERO_ON+_MM_DENORMALS_ZERO_ON) );
         _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);

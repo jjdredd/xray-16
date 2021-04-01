@@ -765,7 +765,7 @@ public:
 
     // Functors, lambda functions, etc
     template <typename Invokable, std::enable_if_t<std::is_convertible_v<Invokable, StaticFunctionPtr>, int> = 0>
-    FastDelegate(Invokable&& invokable)
+    FastDelegate(const Invokable& invokable)
     {
         bind(static_cast<StaticFunctionPtr>(invokable));
     }
@@ -861,6 +861,12 @@ using FastDelegate8 = FastDelegate<RetType(Param1, Param2, Param3, Param4, Param
 // implicit downcasts may need to be applied later to the 'this' pointer.
 // That's why two classes (X and Y) appear in the definitions. Y must be implicitly
 // castable to X.
+
+template <typename Invokable>
+auto MakeDelegate(const Invokable& invokable)
+{
+    return FastDelegate(invokable);
+}
 
 template <typename RetType, typename... Arguments>
 FastDelegate<RetType(Arguments...)> MakeDelegate(RetType(xr_stdcall* func)(Arguments... args))

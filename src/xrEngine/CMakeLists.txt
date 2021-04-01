@@ -120,8 +120,6 @@ set(SRC_FILES
     "stdafx.cpp"
     "stdafx.h"
     "std_classes.h"
-    "TaskScheduler.cpp"
-    "TaskScheduler.hpp"
     #"Text_Console.cpp"
     #"Text_Console.h"
     #"Text_Console_WndProc.cpp"
@@ -216,10 +214,12 @@ target_compile_definitions(${PROJECT_NAME}
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     PREFIX ""
-    COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h"
 )
 
-cotire(${PROJECT_NAME})
+target_precompile_headers(${PROJECT_NAME}
+    PRIVATE
+    "stdafx.h"
+)
 
 install(TARGETS ${PROJECT_NAME} LIBRARY
     DESTINATION ${CMAKE_INSTALL_LIBDIR}

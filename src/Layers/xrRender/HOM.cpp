@@ -4,8 +4,7 @@
 
 #include "stdafx.h"
 
-#include <tbb/blocked_range.h>
-#include <tbb/parallel_for.h>
+#include "xrCore/Threading/ParallelFor.hpp"
 
 #include "HOM.h"
 #include "occRasterizer.h"
@@ -13,19 +12,6 @@
 #include "xrEngine/PerformanceAlert.hpp"
 
 float psOSSR = .001f;
-
-void __stdcall CHOM::MT_RENDER()
-{
-    MT.Enter();
-    if (MT_frame_rendered != Device.dwFrame)
-    {
-        CFrustum ViewBase;
-        ViewBase.CreateFromMatrix(Device.mFullTransform, FRUSTUM_P_LRTB + FRUSTUM_P_FAR);
-        Enable();
-        Render(ViewBase);
-    }
-    MT.Leave();
-}
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -100,7 +86,9 @@ void CHOM::Load()
     // Create RASTER-triangles
     m_pTris = xr_alloc<occTri>(u32(CL.getTS()));
 
-    FOR_START(u32, 0, CL.getTS(), it)
+    xr_parallel_for(TaskRange<u32>(0, CL.getTS()), [&](const TaskRange<u32>& range)
+    {
+        for (u32 it = range.begin(); it != range.end(); ++it)
         {
             CDB::TRI& clT = CL.getT()[it];
             occTri& rT = m_pTris[it];
@@ -120,7 +108,7 @@ void CHOM::Load()
             rT.skip = 0;
             rT.center.add(v0, v1).add(v2).div(3.f);
         }
-    FOR_END
+    });
 
     // Create AABB-tree
     m_pModel = xr_new<CDB::MODEL>();
@@ -278,8 +266,15 @@ void CHOM::Render(CFrustum& base)
     Raster.clear();
     Render_DB(base);
     Raster.propagade();
-    MT_frame_rendered = Device.dwFrame;
     stats.Total.End();
+}
+
+void xr_stdcall CHOM::MT_RENDER(Task& /*thisTask*/, void* /*data*/)
+{
+    CFrustum ViewBase;
+    ViewBase.CreateFromMatrix(Device.mFullTransform, FRUSTUM_P_LRTB + FRUSTUM_P_FAR);
+    Enable();
+    Render(ViewBase);
 }
 
 ICF BOOL xform_b0(Fvector2& min, Fvector2& max, float& minz, const Fmatrix& X, float _x, float _y, float _z)

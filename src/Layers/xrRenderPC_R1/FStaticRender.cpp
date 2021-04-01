@@ -1,13 +1,17 @@
 #include "stdafx.h"
+
+#include "xrCore/Threading/TaskManager.hpp"
+
 #include "FStaticRender.h"
-#include "Layers/xrRender/FBasicVisual.h"
+
 #include "xrEngine/xr_object.h"
 #include "xrEngine/CustomHUD.h"
 #include "xrEngine/IGame_Persistent.h"
 #include "xrEngine/Environment.h"
 #include "xrEngine/GameFont.h"
 #include "xrEngine/PerformanceAlert.hpp"
-#include "xrEngine/TaskScheduler.hpp"
+
+#include "Layers/xrRender/FBasicVisual.h"
 #include "Layers/xrRender/SkeletonCustom.h"
 #include "Layers/xrRender/LightTrack.h"
 #include "Layers/xrRender/dxWallMarkArray.h"
@@ -158,8 +162,8 @@ void CRender::BeforeFrame()
 {
     if (IGame_Persistent::MainMenuActiveOrLevelNotExist())
         return;
-    // MT-HOM (@front)
-    Device.seqParallel.insert(Device.seqParallel.begin(), fastdelegate::FastDelegate0<>(&HOM, &CHOM::MT_RENDER));
+
+    ProcessHOMTask = &TaskScheduler->AddTask("MT-HOM", { &HOM, &CHOM::MT_RENDER });
 }
 
 void CRender::OnFrame()
@@ -467,14 +471,9 @@ void CRender::Calculate()
     r_ssaGLOD_end = _sqr(ps_r__GLOD_ssa_end / 3) / g_fSCREEN;
     r_ssaHZBvsTEX = _sqr(ps_r__ssaHZBvsTEX / 3) / g_fSCREEN;
 
-    // Frustum & HOM rendering
+    // Frustum
     ViewBase.CreateFromMatrix(Device.mFullTransform, FRUSTUM_P_LRTB | FRUSTUM_P_FAR);
 
-    if (!ps_r2_ls_flags.test(R2FLAG_EXP_MT_CALC))
-    {
-        HOM.Enable();
-        HOM.Render(ViewBase);
-    }
     gm_SetNearer(FALSE);
     phase = PHASE_NORMAL;
 
@@ -511,6 +510,7 @@ void CRender::Calculate()
     // Main process
     marker++;
     set_Object(nullptr);
+    TaskScheduler->Wait(*ProcessHOMTask);
     if (pLastSector)
     {
         // Traverse sector/portal structure
@@ -540,12 +540,12 @@ void CRender::Calculate()
             // Exact sorting order (front-to-back)
             std::sort(lstRenderables.begin(), lstRenderables.end(), pred_sp_sort);
 
-            // Determine visibility for dynamic part of scene
             if (ps_r__common_flags.test(RFLAG_ACTOR_SHADOW)) // Actor Shadow (Sun + Light)
                 g_hud->Render_First(); // R1 shadows
 
             g_hud->Render_Last();
 
+            // Determine visibility for dynamic part of scene
             u32 uID_LTRACK = 0xffffffff;
             if (phase == PHASE_NORMAL)
             {
@@ -612,13 +612,15 @@ void CRender::Calculate()
                             if (!bVisible)
                                 break; // exit loop on frustums
 
-                            // rendering
+                            // update light-vis for selected entity
                             if (o_it == uID_LTRACK && renderable->renderable_ROS())
                             {
                                 // track lighting environment
                                 CROS_impl* T = (CROS_impl*)renderable->renderable_ROS();
                                 T->update(renderable);
                             }
+
+                            // Rendering
                             renderable->renderable_Render(renderable);
                         }
                         break; // exit loop on frustums

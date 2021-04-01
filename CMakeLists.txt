@@ -1,8 +1,16 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 
 project(OpenXRay)
 
 set(CMAKE_CXX_STANDARD 17)
+
+if (CMAKE_VERBOSE_MAKEFILE)
+    set(CMAKE_EXECUTE_PROCESS_COMMAND_ECHO STDOUT)
+endif()
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+endif()
 
 # Redirecting the default installation path /usr/local to /usr no need to use -DCMAKE_INSTALL_PREFIX =/usr
 set(CMAKE_INSTALL_PREFIX /usr)
@@ -28,21 +36,16 @@ elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "e2k")
     set(PROJECT_PLATFORM_E2K TRUE)
 endif()
 
-option(TBB_PARALLEL "Use tbb::parallel for prarticle and skinning acceleration on SMP." ON)
 option(USE_CRYPTOPP "Use Crypto++ Library (REQUIRED FOR MULTIPLAYER)" ON)
 
 # Memory allocator option
-set(MEMORY_ALLOCATOR "mimalloc" CACHE STRING "Use specific memory allocator (mimalloc/tbb/standard)")
+set(MEMORY_ALLOCATOR "mimalloc" CACHE STRING "Use specific memory allocator (mimalloc/standard)")
 message("Using ${MEMORY_ALLOCATOR} memory allocator")
 if (MEMORY_ALLOCATOR STREQUAL "mimalloc")
     add_definitions(-DUSE_MIMALLOC)
-elseif (MEMORY_ALLOCATOR STREQUAL "tbb")
-    add_definitions(-DUSE_TBB_MALLOC)
 else()
     add_definitions(-DUSE_PURE_ALLOC)
 endif()
-
-include(cotire)
 
 function(xr_install tgt)
     if (NOT MSVC)
@@ -97,8 +100,10 @@ if (CCACHE_FOUND)
 endif (CCACHE_FOUND)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0 AND NOT PROJECT_PLATFORM_E2K)
         message(FATAL_ERROR "Building with a gcc version less than 8.0 is not supported.")
+    elseif (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0 AND PROJECT_PLATFORM_E2K)
+        message(FATAL_ERROR "Building with a MCST lcc version less than 1.25 is not supported.")
     endif()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-command-line-argument -Wno-inconsistent-missing-override")
@@ -127,18 +132,14 @@ set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${SANITIZE_FLAGS}")
 
 set(LUA_LIBRARIES xrLuajit)
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
-endif()
-
 if (PROJECT_PLATFORM_ARM)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpu=neon")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpu=neon")
 elseif (PROJECT_PLATFORM_ARM64)
     set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
 elseif (PROJECT_PLATFORM_E2K)
-    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
 else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse3")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse3")
@@ -146,10 +147,6 @@ endif()
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold")
-
-if (TBB_PARALLEL)
-    add_definitions(-DUSE_TBB_PARALLEL)
-endif()
 
 if (USE_CRYPTOPP)
     add_definitions(-DUSE_CRYPTOPP)
@@ -190,9 +187,6 @@ if (NOT WIN32)
     find_package(SDL REQUIRED)
     find_package(LZO REQUIRED)
     find_package(JPEG REQUIRED)
-    if (TBB_PARALLEL)
-        find_package(TBB REQUIRED)
-    endif()
     find_package(PCRE REQUIRED)
 endif()
 
@@ -216,6 +210,8 @@ execute_process(COMMAND git rev-parse --abbrev-ref HEAD
 )
 
 message("git branch: " ${GIT_BRANCH})
+
+include_directories(${CMAKE_SOURCE_DIR}/Externals)
 
 add_subdirectory(Externals)
 add_subdirectory(src)
