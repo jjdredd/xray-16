@@ -1,0 +1,128 @@
+#include "CLOptions.h"
+#include "xrMemory.h"
+#include "log.h"
+
+
+// CLOption
+
+template<typename T>
+CLOption<T>::CLOption(char *opname, T defval, bool req)
+{
+    option_name = xr_strdup(opname);
+    provided = true;
+    required = false;
+    argument = defval;
+    options.push_back(this);
+}
+
+template<typename T>
+CLOption<T>::CLOption(char *opname, bool req)
+{
+    option_name = xr_strdup(opname);
+    provided = false;
+    options.push_back(this);
+}
+
+template<>
+CLOption<char *>::CLOption(char *opname, char *defval, bool req)
+{
+    option_name = xr_strdup(opname);
+    provided = false;
+    required = false;
+    argument = xr_strdup(defval);
+    options.push_back(this);
+}
+
+
+template<typename T>
+typename xr_list<CLOption<T> *>::iterator CLOption<T>::find_option(char *flag_name)
+{
+    typename xr_list<CLOption<T> *>::iterator it;
+    for(it = CLOption<T>::options.begin(); it != CLOption<T>::options.end(); it++)
+    {
+        if (!xr_strcmp(flag_name, (*it)->option_name)) break;
+    }
+    return it;
+}
+
+template<typename T>
+CLOption<T>::~CLOption()
+{
+    auto it = find_option(option_name);
+    if (it != options.end()) options.erase(it);
+    xr_free(option_name);
+}
+
+template<>
+CLOption<char *>::~CLOption()
+{
+    auto it = find_option(option_name);
+    if (it != options.end()) options.erase(it);
+    xr_free(option_name);
+    if (provided) xr_free(argument);
+}
+
+template<typename T>
+bool CLOption<T>::IsProvided()
+{
+    return provided;
+}
+
+template<typename T>
+T CLOption<T>::OptionValue()
+{
+    return argument;
+}
+
+template<typename T>
+void CLOption<T>::CheckArguments()
+{
+    typename xr_list<CLOption<T> *>::iterator it;
+    for(it = CLOption<T>::options.begin(); it != CLOption<T>::options.end(); it++)
+    {
+        if((*it)->required && !(*it)->provided)
+        {
+            throw ArgMissingException((*it)->option_name);
+        }
+    }
+    return it;
+}
+
+void ParseCommandLine(int argc, char *argv[])
+{
+    // put these back into class methods?
+    for(int n = 0; n < argc; n++)
+    {
+        // is this a bool option?
+        auto it_b = CLOption<bool>::find_option(argv[n]);
+        if(it_b != CLOption<bool>::options.end())
+        {
+            CLOption<bool> *o = *it_b;
+            o->argument = true;
+            o->provided = true;
+            continue;
+        }
+
+        // is this an int option?
+        auto it_i = CLOption<int>::find_option(argv[n]);
+        if(it_i != CLOption<int>::options.end())
+        {
+            CLOption<int> *o = *it_i;
+            o->argument = atoi(argv[++n]);
+            o->provided = true;
+            continue;
+        }
+
+        // is this a string option?
+        auto it_c = CLOption<char *>::find_option(argv[n]);
+        if(it_c != CLOption<char *>::options.end())
+        {
+            CLOption<char *> *o = *it;
+            o->argument = xr_strdup(argv[++n]);
+            o->provided = true;
+            continue;
+        }
+
+        Msg("Unknown option <%s>", argv[n]);
+    }
+}

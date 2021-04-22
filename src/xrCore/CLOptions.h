@@ -15,47 +15,6 @@ template<typename T> class XRCORE_API CLOption;
 template<typename T>
 class XRCORE_API CLOption
 {
-
-	struct ArgMissingException : public std::exception
-    {
-        char *option_error;
-
-        ArgMissingException(char *opt_err)
-        {
-            option_error = xr_strdup(opt_err);
-        }
-
-        ~ArgMissingException()
-        {
-            xr_free(option_error);
-        }
-
-        const char * what() const throw()
-        {
-			return option_error; // missing argument
-		}
-	};
-
-	struct ArgParamException : public std::exception
-    {
-        char *option_error;
-
-        ArgParamException(char *opt_err)
-        {
-            option_error = xr_strdup(opt_err);
-        }
-
-        ~ArgParamException()
-        {
-            xr_free(option_error);
-        }
-
-        const char * what() const throw()
-        {
-			return option_error; // missing argument parameter
-		}
-	};
-	
 public:
 	CLOption(char *flag_name, T defval, bool req);
 	CLOption(char *flag_name, bool req);
@@ -67,20 +26,52 @@ public:
 	friend void ParseCommandLine(int argc, char *argv[]);
 
 private:
-	char *option_name = nullptr;
+	xr_string option_name;
 	bool required;
 	bool provided = false;
 
 	T argument;
 
     static typename xr_list<CLOption<T> *>::iterator find_option(char *flag_name);
+    static bool parse_option(char *option, char *arg);
 	static xr_list<CLOption<T> *> options;
 };
 
+
+template<> xr_list<CLOption<bool> *> CLOption<bool>::options = {};
+template<> xr_list<CLOption<int> *> CLOption<int>::options = {};
+template<> xr_list<CLOption<xr_string> *> CLOption<xr_string>::options = {};
+
+
+// exception
+
+struct CLOptionMissing : public std::exception
+{
+    xr_string option_error;
+
+    CLOptionMissing(xr_string &opt_err) : option_error(opt_err) {}
+    ~CLOptionMissing() = default;
+    const char * what() const throw()
+    {
+        return option_error.c_str(); // missing argument
+    }
+};
+
+struct CLOptionParam : public std::exception
+{
+    xr_string option_error;
+
+    CLOptionParam(xr_string &opt_err) : option_error(opt_err) {}
+    ~CLOptionParam() = default;
+    const char * what() const throw()
+    {
+        return option_error.c_str(); // missing argument parameter
+    }
+};
 
 void CLCheckAllArguments()
 {
     CLOption<int>::CheckArguments();
     CLOption<bool>::CheckArguments();
-    CLOption<char *>::CheckArguments();
+    CLOption<xr_string>::CheckArguments();
 }
