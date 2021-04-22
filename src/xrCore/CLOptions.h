@@ -10,42 +10,77 @@
 #include "xrstring.h"
 #include "_std_extensions.h"
 
-class XRCORE_API CLOptionBase {
-
-public:
-	CLOptionBase(char *opname, bool req);
-
-private:
-	char* option_name;
-	bool required;
-	bool provided = false;
-};
-
+template<typename T> class XRCORE_API CLOption;
 
 template<typename T>
-class XRCORE_API CLOption : public CLOptionBase {
-	
-	struct ArgMissingException : public exception {
-		const char * what() const throw() {
-			return "Missing Argument";
-		}
-	}
+class XRCORE_API CLOption
+{
 
-	struct ArgParamException : public exception {
-		const char * what() const throw() {
-			return "Missing Argument Parameter";
+	struct ArgMissingException : public std::exception
+    {
+        char *option_error;
+
+        ArgMissingException(char *opt_err)
+        {
+            option_error = xr_strdup(opt_err);
+        }
+
+        ~ArgMissingException()
+        {
+            xr_free(option_error);
+        }
+
+        const char * what() const throw()
+        {
+			return option_error; // missing argument
 		}
-	}
+	};
+
+	struct ArgParamException : public std::exception
+    {
+        char *option_error;
+
+        ArgParamException(char *opt_err)
+        {
+            option_error = xr_strdup(opt_err);
+        }
+
+        ~ArgParamException()
+        {
+            xr_free(option_error);
+        }
+
+        const char * what() const throw()
+        {
+			return option_error; // missing argument parameter
+		}
+	};
 	
 public:
-	CLOption(char *flag_name, T defval);
+	CLOption(char *flag_name, T defval, bool req);
 	CLOption(char *flag_name, bool req);
-	void CheckArguments();
-	bool IsProvided();
-	T OptionValue();
+    ~CLOption();
+	bool IsProvided();          // was the option provided in the CLI?
+	T OptionValue();            // value provided with the option
+
+    static void CheckArguments();
+	friend void ParseCommandLine(int argc, char *argv[]);
 
 private:
-	static ParseCommandLine(int argc, char *argv[]);
-	static xr_list<OptionBase *> options;
+	char *option_name = nullptr;
+	bool required;
+	bool provided = false;
+
 	T argument;
+
+    static typename xr_list<CLOption<T> *>::iterator find_option(char *flag_name);
+	static xr_list<CLOption<T> *> options;
 };
+
+
+void CLCheckAllArguments()
+{
+    CLOption<int>::CheckArguments();
+    CLOption<bool>::CheckArguments();
+    CLOption<char *>::CheckArguments();
+}
