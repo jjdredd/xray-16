@@ -16,14 +16,14 @@ template<typename T>
 class XRCORE_API CLOption
 {
 public:
-	CLOption(char *flag_name, T defval, bool req);
-	CLOption(char *flag_name, bool req);
+	CLOption(const char *flag_name, const T defval, bool req);
+	CLOption(const char *flag_name, bool req);
     ~CLOption();
-	bool IsProvided();          // was the option provided in the CLI?
-	T OptionValue();            // value provided with the option
+	bool IsProvided() const;          // was the option provided in the CLI?
+	T OptionValue() const;            // value provided with the option
 
     static void CheckArguments();
-	friend void ParseCommandLine(int argc, char *argv[]);
+	friend void ParseCommandLine(const int argc, const char *argv[]);
 
 private:
 	xr_string option_name;
@@ -32,8 +32,8 @@ private:
 
 	T argument;
 
-    static typename xr_list<CLOption<T> *>::iterator find_option(char *flag_name);
-    static bool parse_option(char *option, char *arg);
+    static typename xr_list<CLOption<T> *>::iterator find_option(const char *flag_name);
+    static bool parse_option(const char *option, const char *arg);
 	static xr_list<CLOption<T> *> options;
 };
 
@@ -68,6 +68,11 @@ struct CLOptionParam : public std::exception
         return option_error.c_str(); // missing argument parameter
     }
 };
+
+inline static bool IsOptionFlag(const char *buf)
+{
+    return (!buf && buf[0] == '-');
+}
 
 void CLCheckAllArguments()
 {

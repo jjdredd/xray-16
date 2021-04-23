@@ -7,22 +7,22 @@
 
 // when adding make sure it's beginning with a '-'
 template<typename T>
-CLOption<T>::CLOption(char *opname, T defval, bool req)
+CLOption<T>::CLOption(const char *opname, const T defval, bool req)
     : option_name(opname), provided(true), required(false), argument(defval)
 {
-    if(option_name[0] != '-') option_name.insert(option_name.begin(), '-');
+    if(IsOptionFlag(option_name.c_str())) option_name.insert(option_name.begin(), '-');
     options.push_back(this);
 }
 
 template<typename T>
-CLOption<T>::CLOption(char *opname, bool req)
+CLOption<T>::CLOption(const char *opname, bool req)
     : option_name(opname), provided(false)
 {
     options.push_back(this);
 }
 
 template<typename T>
-typename xr_list<CLOption<T> *>::iterator CLOption<T>::find_option(char *flag_name)
+typename xr_list<CLOption<T> *>::iterator CLOption<T>::find_option(const char *flag_name)
 {
     typename xr_list<CLOption<T> *>::iterator it;
     for(it = CLOption<T>::options.begin(); it != CLOption<T>::options.end(); it++)
@@ -40,13 +40,13 @@ CLOption<T>::~CLOption()
 }
 
 template<typename T>
-bool CLOption<T>::IsProvided()
+bool CLOption<T>::IsProvided() const
 {
     return provided;
 }
 
 template<typename T>
-T CLOption<T>::OptionValue()
+T CLOption<T>::OptionValue() const
 {
     return argument;
 }
@@ -66,7 +66,7 @@ void CLOption<T>::CheckArguments()
 
 
 template<>
-bool CLOption<bool>::parse_option(char *option, char *arg)
+bool CLOption<bool>::parse_option(const char *option, const char *arg)
 {
     auto it = find_option(option);
     if(it != options.end()) return false; // not found
@@ -80,7 +80,7 @@ bool CLOption<bool>::parse_option(char *option, char *arg)
 }
 
 template<>
-bool CLOption<int>::parse_option(char *option, char *arg)
+bool CLOption<int>::parse_option(const char *option, const char *arg)
 {
     auto it = find_option(option);
     if(it != options.end()) return false; // not found
@@ -94,7 +94,7 @@ bool CLOption<int>::parse_option(char *option, char *arg)
 }
 
 template<>
-bool CLOption<xr_string>::parse_option(char *option, char *arg)
+bool CLOption<xr_string>::parse_option(const char *option, const char *arg)
 {
     auto it = find_option(option);
     if(it != options.end()) return false; // not found
@@ -107,12 +107,12 @@ bool CLOption<xr_string>::parse_option(char *option, char *arg)
     return true;
 }
 
-void ParseCommandLine(int argc, char *argv[])
+void ParseCommandLine(const int argc, const char *argv[])
 {
     // put these back into class methods?
     for(int n = 0; n < argc; n++)
     {
-        if(argv[n + 1][0] != '-')
+        if(IsOptionFlag(argv[n + 1]))
         {
             Msg("Unknown option <%s>", argv[n]);
             continue;
@@ -124,7 +124,7 @@ void ParseCommandLine(int argc, char *argv[])
             continue;
         }
         // the rest of the flags will require an argument
-        else if(n + 1 >= argc || argv[n + 1][0] != '-')
+        else if(n + 1 >= argc || IsOptionFlag(argv[n + 1]))
         {
             xr_string s(argv[n]);
             throw CLOptionParam(s);
