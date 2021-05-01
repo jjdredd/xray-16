@@ -10,6 +10,7 @@
 #endif
 #include "xrEngine/main.h"
 #include "xrEngine/splash.h"
+#include "xrCore/CLOptions.h"
 #include <SDL.h>
 
 //#define PROFILE_TASK_SYSTEM
@@ -126,6 +127,38 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, char* commandLine, int 
 int main(int argc, char *argv[])
 {
     int result = EXIT_FAILURE;
+
+
+    static CLOption<bool> testop("-test_op", true);
+    static CLOption<int> testop_int("-test_op_int", true);
+    static CLOption<xr_string> testop_str("-test_op_str", true);
+
+    try
+    {
+        ParseCommandLine(argc, argv);
+        CLCheckAllArguments();
+    }
+    catch (std::exception &e)
+    {
+        Msg("cl except %s", e.what());
+    }
+
+    if (testop.IsProvided())
+    {
+        Msg("testop provided with val %i", testop.OptionValue());
+    }
+
+    if (testop_int.IsProvided())
+    {
+        Msg("testop_int provided with val %i", testop_int.OptionValue());
+    }
+
+    if (testop_str.IsProvided())
+    {
+        Msg("testop_str provided with val %s", testop_str.OptionValue());
+    }
+
+    return 0;    
 
     try
     {

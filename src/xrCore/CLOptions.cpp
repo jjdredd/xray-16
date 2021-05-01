@@ -2,7 +2,6 @@
 #include "xrMemory.h"
 #include "log.h"
 
-
 // CLOption
 
 // when adding make sure it's beginning with a '-'
@@ -16,13 +15,13 @@ CLOption<T>::CLOption(const char *opname, const T defval, bool req)
 
 template<typename T>
 CLOption<T>::CLOption(const char *opname, bool req)
-    : option_name(opname), provided(false)
+    : option_name(opname), required(req), provided(false)
 {
     options.push_back(this);
 }
 
 template<typename T>
-typename xr_list<CLOption<T> *>::iterator CLOption<T>::find_option(const char *flag_name)
+typename xr_list<CLOption<T> *>::iterator CLOption<T>::find_option(const xr_string &flag_name)
 {
     typename xr_list<CLOption<T> *>::iterator it;
     for(it = CLOption<T>::options.begin(); it != CLOption<T>::options.end(); it++)
@@ -64,12 +63,11 @@ void CLOption<T>::CheckArguments()
     }
 }
 
-
 template<>
 bool CLOption<bool>::parse_option(const char *option, const char *arg)
 {
-    auto it = find_option(option);
-    if(it != options.end()) return false; // not found
+    auto it = CLOption<bool>::find_option(option);
+    if(it == CLOption<bool>::options.end()) return false; // not found
 
     // found -> must be of type bool
     CLOption<bool> *o = *it;
@@ -82,8 +80,8 @@ bool CLOption<bool>::parse_option(const char *option, const char *arg)
 template<>
 bool CLOption<int>::parse_option(const char *option, const char *arg)
 {
-    auto it = find_option(option);
-    if(it != options.end()) return false; // not found
+    auto it = CLOption<int>::find_option(option);
+    if(it == CLOption<int>::options.end()) return false; // not found
 
     // found -> must be of type int
     CLOption<int> *o = *it;
@@ -96,8 +94,8 @@ bool CLOption<int>::parse_option(const char *option, const char *arg)
 template<>
 bool CLOption<xr_string>::parse_option(const char *option, const char *arg)
 {
-    auto it = find_option(option);
-    if(it != options.end()) return false; // not found
+    auto it = CLOption<xr_string>::find_option(option);
+    if(it == CLOption<xr_string>::options.end()) return false; // not found
 
     // found -> must be of type string
     CLOption<xr_string> *o = *it;
@@ -107,14 +105,14 @@ bool CLOption<xr_string>::parse_option(const char *option, const char *arg)
     return true;
 }
 
-void ParseCommandLine(const int argc, const char *argv[])
+void ParseCommandLine(int argc, char **argv)
 {
     // put these back into class methods?
-    for(int n = 0; n < argc; n++)
+    for(int n = 1; n < argc; n++)
     {
-        if(IsOptionFlag(argv[n + 1]))
+        if(!IsOptionFlag(argv[n]))
         {
-            Msg("Unknown option <%s>", argv[n]);
+            Msg("Unknown option/argument <%s>", argv[n]);
             continue;
         }
 
@@ -124,7 +122,7 @@ void ParseCommandLine(const int argc, const char *argv[])
             continue;
         }
         // the rest of the flags will require an argument
-        else if(n + 1 >= argc || IsOptionFlag(argv[n + 1]))
+        else if((n + 1 >= argc) || IsOptionFlag(argv[n + 1]))
         {
             xr_string s(argv[n]);
             throw CLOptionParam(s);
@@ -139,3 +137,19 @@ void ParseCommandLine(const int argc, const char *argv[])
         Msg("Unknown option <%s>", argv[n]);
     }
 }
+
+
+void CLCheckAllArguments()
+{
+    CLOption<int>::CheckArguments();
+    CLOption<bool>::CheckArguments();
+    CLOption<xr_string>::CheckArguments();
+}
+
+template<> xr_list<CLOption<bool> *> CLOption<bool>::options = {};
+template<> xr_list<CLOption<int> *> CLOption<int>::options = {};
+template<> xr_list<CLOption<xr_string> *> CLOption<xr_string>::options = {};
+
+template class CLOption<bool>;
+template class CLOption<int>;
+template class CLOption<xr_string>;

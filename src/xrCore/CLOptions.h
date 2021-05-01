@@ -23,7 +23,7 @@ public:
 	T OptionValue() const;            // value provided with the option
 
     static void CheckArguments();
-	friend void ParseCommandLine(const int argc, const char *argv[]);
+	friend void ParseCommandLine(int argc, char *argv[]);
 
 private:
 	xr_string option_name;
@@ -32,16 +32,10 @@ private:
 
 	T argument;
 
-    static typename xr_list<CLOption<T> *>::iterator find_option(const char *flag_name);
+    static typename xr_list<CLOption<T> *>::iterator find_option(const xr_string &flag_name);
     static bool parse_option(const char *option, const char *arg);
-	static xr_list<CLOption<T> *> options;
+    static xr_list<CLOption<T> *> options;
 };
-
-
-template<> xr_list<CLOption<bool> *> CLOption<bool>::options = {};
-template<> xr_list<CLOption<int> *> CLOption<int>::options = {};
-template<> xr_list<CLOption<xr_string> *> CLOption<xr_string>::options = {};
-
 
 // exception
 
@@ -71,12 +65,8 @@ struct CLOptionParam : public std::exception
 
 inline static bool IsOptionFlag(const char *buf)
 {
-    return (!buf && buf[0] == '-');
+    return (buf && buf[0] == '-');
 }
 
-void CLCheckAllArguments()
-{
-    CLOption<int>::CheckArguments();
-    CLOption<bool>::CheckArguments();
-    CLOption<xr_string>::CheckArguments();
-}
+void XRCORE_API ParseCommandLine(int argc, char **argv);
+void XRCORE_API CLCheckAllArguments();
