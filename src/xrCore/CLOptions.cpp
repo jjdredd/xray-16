@@ -150,6 +150,6 @@ template<> xr_list<CLOption<bool> *> CLOption<bool>::options = {};
 template<> xr_list<CLOption<int> *> CLOption<int>::options = {};
 template<> xr_list<CLOption<xr_string> *> CLOption<xr_string>::options = {};
 
-template class CLOption<bool>;
-template class CLOption<int>;
-template class CLOption<xr_string>;
+template class XRCORE_API CLOption<bool>;
+template class XRCORE_API CLOption<int>;
+template class XRCORE_API CLOption<xr_string>;

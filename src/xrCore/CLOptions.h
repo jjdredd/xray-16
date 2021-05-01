@@ -68,5 +68,5 @@ inline static bool IsOptionFlag(const char *buf)
     return (buf && buf[0] == '-');
 }
 
-void XRCORE_API ParseCommandLine(int argc, char **argv);
-void XRCORE_API CLCheckAllArguments();
+XRCORE_API void ParseCommandLine(int argc, char **argv);
+XRCORE_API void CLCheckAllArguments();
