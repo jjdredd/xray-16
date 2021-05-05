@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 
     if (testop_str.IsProvided())
     {
-        Msg("testop_str provided with val %s", testop_str.OptionValue());
+        Msg("testop_str provided with val %s", testop_str.OptionValue().c_str());
     }
 
     return 0;    

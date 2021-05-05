@@ -2,6 +2,10 @@
 #include "xrMemory.h"
 #include "log.h"
 
+template<> xr_list<CLOption<bool> *> CLOption<bool>::options = {};
+template<> xr_list<CLOption<int> *> CLOption<int>::options = {};
+template<> xr_list<CLOption<xr_string> *> CLOption<xr_string>::options = {};
+
 // CLOption
 
 // when adding make sure it's beginning with a '-'
@@ -145,10 +149,6 @@ void CLCheckAllArguments()
     CLOption<bool>::CheckArguments();
     CLOption<xr_string>::CheckArguments();
 }
-
-template<> xr_list<CLOption<bool> *> CLOption<bool>::options = {};
-template<> xr_list<CLOption<int> *> CLOption<int>::options = {};
-template<> xr_list<CLOption<xr_string> *> CLOption<xr_string>::options = {};
 
 template class XRCORE_API CLOption<bool>;
 template class XRCORE_API CLOption<int>;
