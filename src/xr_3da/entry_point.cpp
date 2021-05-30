@@ -128,19 +128,37 @@ int main(int argc, char *argv[])
 {
     int result = EXIT_FAILURE;
 
+    static CLOption<bool> CLHelp("-help", "print this help and exit", false);
 
-    static CLOption<bool> testop("-test_op", true);
-    static CLOption<int> testop_int("-test_op_int", true);
-    static CLOption<xr_string> testop_str("-test_op_str", true);
+    static CLOption<bool> testop("-test_op", "test bool", false);
+    static CLOption<int> testop_int("-test_op_int", "test int", 12);
+    static CLOption<pstr> testop_str("-test_op_str", "test str", "empty");
 
     try
     {
         ParseCommandLine(argc, argv);
         CLCheckAllArguments();
     }
-    catch (std::exception &e)
+    catch (CLOptionMissing &e)
     {
-        Msg("cl except %s", e.what());
+        Msg("Command Line Options error: Missing option %s", e.what());
+    }
+    catch (CLOptionParam &e)
+    {
+        Msg("Command Line Options error: Missing parameter for option %s", e.what());
+    }
+    catch (std::invalid_argument &e)
+    {
+        Msg("Command Line Options error: Invalid integer argument %s", e.what());
+    }
+    catch (std::out_of_range &e)
+    {
+        Msg("Command Line Options error: Invalid integer out of range %s", e.what());
+    }
+
+    if (CLHelp.IsProvided()) {
+        CLPrintAllHelp();
+        return 0;
     }
 
     if (testop.IsProvided())
@@ -155,7 +173,7 @@ int main(int argc, char *argv[])
 
     if (testop_str.IsProvided())
     {
-        Msg("testop_str provided with val %s", testop_str.OptionValue().c_str());
+        Msg("testop_str provided with val %s", testop_str.OptionValue());
     }
 
     return 0;    

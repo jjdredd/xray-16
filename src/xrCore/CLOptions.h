@@ -7,7 +7,6 @@
 #include <exception>
 
 #include "xrCommon/xr_list.h"
-#include "xrstring.h"
 #include "_std_extensions.h"
 
 template<typename T> class XRCORE_API CLOption;
@@ -16,24 +15,27 @@ template<typename T>
 class XRCORE_API CLOption
 {
 public:
-	CLOption(const char *flag_name, const T defval, bool req);
-	CLOption(const char *flag_name, bool req);
+    CLOption(pcstr flag_name, pcstr desc, const T defval, bool req = false);
     ~CLOption();
-	bool IsProvided() const;          // was the option provided in the CLI?
-	T OptionValue() const;            // value provided with the option
+    bool IsProvided() const;          // was the option provided in the CLI?
+    T OptionValue() const;            // value provided with the option
 
     static void CheckArguments();
-	friend void ParseCommandLine(int argc, char *argv[]);
+    static void PrintHelp();
+    friend void ParseCommandLine(int argc, char *argv[]);
 
 private:
-	xr_string option_name;
-	bool required;
-	bool provided = false;
+    pstr option_name = nullptr;
+    pstr description = nullptr;
+    bool required;
+    bool provided = false;
 
-	T argument;
+    T argument;
 
-    static typename xr_list<CLOption<T> *>::iterator find_option(const xr_string &flag_name);
-    static bool parse_option(const char *option, const char *arg);
+    void copy_argument(T arg);
+    void free_argument();
+    static typename xr_list<CLOption<T> *>::iterator find_option(pcstr flag_name);
+    static bool parse_option(pcstr option, pcstr arg);
     static xr_list<CLOption<T> *> options;
 };
 
@@ -41,25 +43,25 @@ private:
 
 struct CLOptionMissing : public std::exception
 {
-    xr_string option_error;
+    char *option_error = nullptr;
 
-    CLOptionMissing(xr_string &opt_err) : option_error(opt_err) {}
-    ~CLOptionMissing() = default;
+    CLOptionMissing(pstr opt_err) { option_error = xr_strdup(opt_err); }
+    ~CLOptionMissing() { xr_free(option_error); }
     const char * what() const throw()
     {
-        return option_error.c_str(); // missing argument
+        return option_error; // missing argument
     }
 };
 
 struct CLOptionParam : public std::exception
 {
-    xr_string option_error;
+    char *option_error = nullptr;
 
-    CLOptionParam(xr_string &opt_err) : option_error(opt_err) {}
-    ~CLOptionParam() = default;
+    CLOptionParam(pstr opt_err) { option_error = xr_strdup(opt_err); }
+    ~CLOptionParam() { xr_free(option_error); }
     const char * what() const throw()
     {
-        return option_error.c_str(); // missing argument parameter
+        return option_error; // missing argument parameter
     }
 };
 
@@ -70,3 +72,4 @@ inline static bool IsOptionFlag(const char *buf)
 
 XRCORE_API void ParseCommandLine(int argc, char **argv);
 XRCORE_API void CLCheckAllArguments();
+XRCORE_API void CLPrintAllHelp();
