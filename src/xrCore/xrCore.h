@@ -132,12 +132,11 @@ public:
     string_path WorkingPath;
     string64 UserName;
     string64 CompName;
-    char* Params;
     u32 dwFrame;
     bool PluginMode;
 
     void Initialize(
-        pcstr ApplicationName, pcstr commandLine = nullptr, LogCallback cb = nullptr, bool init_fs = true, pcstr fs_fname = nullptr, bool plugin = false);
+        pcstr ApplicationName, LogCallback cb = nullptr, bool init_fs = true, pcstr fs_fname = nullptr, bool plugin = false);
     void _destroy();
 
     u32 GetBuildId() const { return buildId; }

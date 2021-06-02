@@ -2,6 +2,8 @@
 #include "resource.h"
 #if defined(XR_PLATFORM_WINDOWS)
 #include "AccessibilityShortcuts.hpp"
+#include <shellapi.h>
+#include <windows.h>
 #elif defined(XR_PLATFORM_LINUX)
 #include <unistd.h>
 #include <stdlib.h>
@@ -29,21 +31,64 @@ XR_EXPORT u32 NvOptimusEnablement = 0x00000001; // NVIDIA Optimus
 XR_EXPORT u32 AmdPowerXpressRequestHighPerformance = 0x00000001; // PowerXpress or Hybrid Graphics
 }
 
-int entry_point(pcstr commandLine)
+
+bool HandleArguments(int argc, char *argv[])
 {
-    xrDebug::Initialize(commandLine);
+    try
+    {
+        ParseCommandLine(argc, argv);
+        CLCheckAllArguments();
+    }
+    catch (CLOptionMissing &e)
+    {
+        Msg("Command Line Options error: Missing option %s", e.what());
+        return false;
+    }
+    catch (CLOptionParam &e)
+    {
+        Msg("Command Line Options error: Missing parameter for option %s", e.what());
+        return false;
+    }
+    catch (std::invalid_argument &e)
+    {
+        Msg("Command Line Options error: Invalid integer argument %s", e.what());
+        return false;
+    }
+    catch (std::out_of_range &e)
+    {
+        Msg("Command Line Options error: Invalid integer out of range %s", e.what());
+        return false;
+    }
+
+    return true;
+}
+
+int entry_point()
+{
+
+    static CLOption<bool> clhelp("-help", "print this help and exit", false);
+
+    if (clhelp.IsProvided()) {
+        CLPrintAllHelp();
+        return 0;
+    }
+
+    xrDebug::Initialize();
     R_ASSERT3(SDL_Init(SDL_INIT_VIDEO) == 0, "Unable to initialize SDL", SDL_GetError());
     SDL_SetHint(SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, "0");
 
-    if (!strstr(commandLine, "-nosplash"))
+    static CLOption<bool> no_splash("-nosplash", "no splash screen", false);
+    static CLOption<bool> splash_notop("-splashnotop", "splash no top", false);
+    if (!no_splash.OptionValue())
     {
-        const bool topmost = !strstr(commandLine, "-splashnotop");
+        const bool topmost = !splash_notop.OptionValue();
 #ifndef PROFILE_TASK_SYSTEM
         splash::show(topmost);
 #endif
     }
 
-    if (strstr(commandLine, "-dedicated"))
+    static CLOption<bool> sv_dedicated("-dedicated", "run dedicated server", false);
+    if (sv_dedicated.OptionValue())
         GEnv.isDedicatedServer = true;
 
 #ifdef XR_PLATFORM_WINDOWS
@@ -52,15 +97,10 @@ int entry_point(pcstr commandLine)
         shortcuts.Disable();
 #endif
 
-    pcstr fsltx = "-fsltx ";
-    string_path fsgame = "";
-    if (strstr(commandLine, fsltx))
-    {
-        const size_t sz = xr_strlen(fsltx);
-        sscanf(strstr(commandLine, fsltx) + sz, "%[^ ] ", fsgame);
-    }
+    static CLOption<pstr> fsltx_path("-fsltx", "path to game config ltx", "");
 #ifdef PROFILE_TASK_SYSTEM
-    Core.Initialize("OpenXRay", commandLine, nullptr, false, *fsgame ? fsgame : nullptr);
+    Core.Initialize("OpenXRay", nullptr, false,
+                    fsltx_path.IsProvided() ? fsltx_path.OptionValue() : nullptr);
 
     const auto task = [](const TaskRange<int>&){};
 
@@ -89,7 +129,8 @@ int entry_point(pcstr commandLine)
 
     const auto result = 0;
 #else
-    Core.Initialize("OpenXRay", commandLine, nullptr, true, *fsgame ? fsgame : nullptr);
+    Core.Initialize("OpenXRay", nullptr, true,
+                    fsltx_path.IsProvided() ? fsltx_path.OptionValue() : nullptr);
 
     const auto result = RunApplication();
 #endif // PROFILE_TASK_SYSTEM
@@ -111,10 +152,17 @@ int StackoverflowFilter(const int exceptionCode)
 int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, char* commandLine, int cmdShow)
 {
     int result = 0;
+    int argc;
+    char **argv
     // BugTrap can't handle stack overflow exception, so handle it here
     __try
     {
-        result = entry_point(commandLine);
+        argv = CommandLineToArgvW(commandLine, &argc);
+        if (HandleArguments(argc, argv))
+            result = entry_point();
+        else
+            result = EXIT_FAILURE;
+        LocalFree(argv);
     }
     __except (StackoverflowFilter(GetExceptionCode()))
     {
@@ -126,102 +174,9 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, char* commandLine, int 
 #elif defined(XR_PLATFORM_LINUX)
 int main(int argc, char *argv[])
 {
-    int result = EXIT_FAILURE;
+    if (!HandleArguments(argc, argv))
+        return EXIT_FAILURE;
 
-    static CLOption<bool> CLHelp("-help", "print this help and exit", false);
-
-    static CLOption<bool> testop("-test_op", "test bool", false);
-    static CLOption<int> testop_int("-test_op_int", "test int", 12);
-    static CLOption<pstr> testop_str("-test_op_str", "test str", "empty");
-
-    try
-    {
-        ParseCommandLine(argc, argv);
-        CLCheckAllArguments();
-    }
-    catch (CLOptionMissing &e)
-    {
-        Msg("Command Line Options error: Missing option %s", e.what());
-    }
-    catch (CLOptionParam &e)
-    {
-        Msg("Command Line Options error: Missing parameter for option %s", e.what());
-    }
-    catch (std::invalid_argument &e)
-    {
-        Msg("Command Line Options error: Invalid integer argument %s", e.what());
-    }
-    catch (std::out_of_range &e)
-    {
-        Msg("Command Line Options error: Invalid integer out of range %s", e.what());
-    }
-
-    if (CLHelp.IsProvided()) {
-        CLPrintAllHelp();
-        return 0;
-    }
-
-    if (testop.IsProvided())
-    {
-        Msg("testop provided with val %i", testop.OptionValue());
-    }
-
-    if (testop_int.IsProvided())
-    {
-        Msg("testop_int provided with val %i", testop_int.OptionValue());
-    }
-
-    if (testop_str.IsProvided())
-    {
-        Msg("testop_str provided with val %s", testop_str.OptionValue());
-    }
-
-    return 0;    
-
-    try
-    {
-        char* commandLine = nullptr;
-        int i;
-        if(argc > 1)
-        {
-            size_t sum = 0;
-            for(i = 1; i < argc; ++i)
-                sum += strlen(argv[i]) + strlen(" \0");
-
-            commandLine = (char*)xr_malloc(sum);
-            ZeroMemory(commandLine, sum);
-
-            for(i = 1; i < argc; ++i)
-            {
-                strcat(commandLine, argv[i]);
-                strcat(commandLine, " ");
-            }
-        }
-        else
-            commandLine = strdup("");
-
-        result = entry_point(commandLine);
-
-        xr_free(commandLine);
-    }
-    catch (const std::overflow_error& e)
-    {
-        _resetstkoflw();
-        FATAL_F("stack overflow: %s", e.what());
-    }
-    catch (const std::runtime_error& e)
-    {
-        FATAL_F("runtime error: %s", e.what());
-    }
-    catch (const std::exception& e)
-    {
-        FATAL_F("exception: %s", e.what());
-    }
-    catch (...)
-    {
-    // this executes if f() throws std::string or int or any other unrelated type
-    }
-
-    return result;
+    return entry_point();
 }
 #endif
