@@ -78,10 +78,11 @@ void MODEL::build(Fvector* V, int Vcnt, TRI* T, int Tcnt, build_callback* bc, vo
     R_ASSERT((Vcnt >= 4) && (Tcnt >= 2));
 
     _initialize_cpu_thread();
+    static CLOption<bool> mt_cdb("-mt_cdb", "mt_cdb", false);
 #ifdef _EDITOR
     build_internal(V, Vcnt, T, Tcnt, bc, bcp);
 #else
-    if (!strstr(Core.Params, "-mt_cdb"))
+    if (!mt_cdb.OptionValue())
     {
         build_internal(V, Vcnt, T, Tcnt, bc, bcp);
         status = S_READY;

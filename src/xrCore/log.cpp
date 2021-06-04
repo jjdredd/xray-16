@@ -246,7 +246,9 @@ void CreateLog(BOOL nl)
         LogWriter->flush();
     }
 
-    if (strstr(Core.Params, "-force_flushlog"))
+    static CLOption<bool> force_flushlog("-force_flushlog", "force_flushlog", false);
+
+    if (force_flushlog.OptionValue())
         ForceFlushLog = true;
 }
 

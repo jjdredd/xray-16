@@ -200,8 +200,7 @@ const pcstr xrCore::buildBranch = MACRO_TO_STRING(GIT_INFO_CURRENT_BRANCH);
 xrCore::xrCore()
     : ApplicationName{}, ApplicationPath{},
       WorkingPath{},
-      UserName{}, CompName{},
-      Params(nullptr), dwFrame(0),
+      UserName{}, CompName{}, dwFrame(0),
       PluginMode(false)
 {
     CalculateBuildId();
@@ -248,7 +247,7 @@ void xrCore::Initialize(pcstr _ApplicationName, LogCallback cb, bool init_fs, pc
 
 #ifdef _EDITOR
         // working path
-        static CLOption<pstr> wdir_path("-wf", "work directory", "");        
+        static CLOption<pstr> wdir_path("-wf", "work directory", "");
         if (wdir_path.OptionValue())
             SetCurrentDirectory(wdir_path.OptionValue());
 #endif
