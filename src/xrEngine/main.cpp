@@ -137,13 +137,16 @@ ENGINE_API void InitSettings()
     InitConfig(pSettingsOpenXRay, "openxray.ltx", false, true, true, false);
     InitConfig(pGameIni, "game.ltx");
 
-    if (strstr(Core.Params, "-shoc") || strstr(Core.Params, "-soc"))
+    static CLOption<bool> cop_flag("-cop", "Call of Pripyat Mode", false);
+    static CLOption<bool> unlock_game_mode("-unlock_game_mode", "unlock_game_mode", false);
+
+    if (shoc_flag.OptionValue() || soc_flag.OptionValue())
         set_shoc_mode();
-    else if (strstr(Core.Params, "-cs"))
+    else if (cs_flag.OptionValue())
         set_cs_mode();
-    else if (strstr(Core.Params, "-cop"))
+    else if (cop_flag.OptionValue())
         set_cop_mode();
-    else if (strstr(Core.Params, "-unlock_game_mode"))
+    else if (unlock_game_mode.OptionValue())
         set_free_mode();
     else
     {
@@ -168,18 +171,15 @@ ENGINE_API void InitConsole()
 
     Console->Initialize();
     xr_strcpy(Console->ConfigFile, "user.ltx");
-    if (strstr(Core.Params, "-ltx "))
-    {
-        string64 c_name;
-        sscanf(strstr(Core.Params, "-ltx ") + strlen("-ltx "), "%[^ ] ", c_name);
-        xr_strcpy(Console->ConfigFile, c_name);
-    }
+    static CLOption<pstr> ltx_flag("-ltx", "ltx", "");
+    if (ltx_flag.IsProvided())
+        xr_strcpy(Console->ConfigFile, ltx_flag.OptionValue());
 }
 
 ENGINE_API void InitInput()
 {
-    bool captureInput = !strstr(Core.Params, "-i") && !GEnv.isEditor;
-    pInput = xr_new<CInput>(captureInput);
+    static CLOption<bool> captureInput("-i", "Capture input", false);
+    pInput = xr_new<CInput>(captureInput.OptionValue());
 }
 
 ENGINE_API void destroyInput() { xr_delete(pInput); }

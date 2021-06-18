@@ -250,7 +250,8 @@ void CStats::Show()
 
 void CStats::OnDeviceCreate()
 {
-    g_bDisableRedText = !!strstr(Core.Params, "-xclsx");
+    static CLOption<bool> xclsx("-xclsx", "xclsx", false);
+    g_bDisableRedText = xclsx.OptionValue();
 
     if (!GEnv.isDedicatedServer)
     {

@@ -31,6 +31,7 @@ constexpr pcstr RENDER_LIBRARIES[] =
 };
 
 static bool r2_available = false;
+static CLOption<bool> nogame("-nogame", "nogame", false);
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -126,7 +127,8 @@ void CEngineAPI::Initialize(void)
     //////////////////////////////////////////////////////////////////////////
     // vTune
     tune_enabled = false;
-    if (strstr(Core.Params, "-tune"))
+    static CLOption<bool> ivtune("-tune", "intel vtune", false);
+    if (ivtune.OptionValue())
     {
         hTuner = XRay::LoadModule("vTuneAPI");
         tune_pause = (VTPause*)hTuner->GetProcAddress("VTPause");

@@ -29,7 +29,9 @@ IGame_Level::IGame_Level()
 
 IGame_Level::~IGame_Level()
 {
-    if (strstr(Core.Params, "-nes_texture_storing"))
+    static CLOption<bool> nes_texture_storing("-nes_texture_storing",
+                                              "nes_texture_storing", false);
+    if (nes_texture_storing.OptionValue())
         // Device.Resources->StoreNecessaryTextures();
         GEnv.Render->ResourcesStoreNecessaryTextures();
     xr_delete(pLevel);
