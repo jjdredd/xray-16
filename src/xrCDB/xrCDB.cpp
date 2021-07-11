@@ -5,6 +5,7 @@
 
 #include "xrCDB.h"
 #include "xrCore/Threading/Lock.hpp"
+#include "xrCore/CLOptions.h"
 
 namespace Opcode
 {

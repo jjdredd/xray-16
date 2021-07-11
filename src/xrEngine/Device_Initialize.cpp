@@ -7,6 +7,7 @@
 #include "GameFont.h"
 #include "PerformanceAlert.hpp"
 #include "xrCore/ModuleLookup.hpp"
+#include "xrCore/CLOptions.h"
 
 SDL_HitTestResult WindowHitTest(SDL_Window* win, const SDL_Point* area, void* data);
 

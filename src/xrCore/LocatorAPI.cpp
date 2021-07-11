@@ -19,6 +19,7 @@
 #include "file_stream_reader.h"
 #include "xrCore/Threading/Lock.hpp"
 #include "Crypto/trivial_encryptor.h"
+#include "CLOptions.h"
 
 #if defined(XR_PLATFORM_LINUX) || defined(XR_PLATFORM_FREEBSD)
 #include "SDL.h"
@@ -37,6 +38,10 @@ static constexpr pcstr FSLTX = "fs.ltx"
 #else
 static constexpr pcstr FSLTX = "fsgame.ltx";
 #endif
+
+extern CLOption<pstr> fsltx_path;
+extern CLOption<bool> shoc_flag, soc_flag, cs_flag;
+
 
 struct _open_file
 {

@@ -9,6 +9,7 @@
 
 #include "xrCore/ModuleLookup.hpp"
 #include "xrCore/xr_token.h"
+#include "xrCore/CLOptions.h"
 
 #include "xrScriptEngine/ScriptExporter.hpp"
 
@@ -31,7 +32,6 @@ constexpr pcstr RENDER_LIBRARIES[] =
 };
 
 static bool r2_available = false;
-static CLOption<bool> nogame("-nogame", "nogame", false);
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -264,6 +264,12 @@ void CEngineAPI::CreateRendererList()
             Log(mode.name);
     }
     modes.emplace_back(nullptr, -1);
+}
+
+bool CEngineAPI::CanSkipGameModuleLoading() const
+{
+    static CLOption<bool> nogame("-nogame", "nogame", false);
+    return nogame.OptionValue();
 }
 
 bool is_r2_available()

@@ -22,6 +22,7 @@
 
 #include "xrCore/FS_impl.h"
 #include "xrCore/Threading/TaskManager.hpp"
+#include "xrCore/CLOptions.h"
 
 #include "Include/editor/ide.hpp"
 

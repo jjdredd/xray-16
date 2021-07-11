@@ -4,6 +4,7 @@
 #include "IGame_Persistent.h"
 #include "GameFont.h"
 #include "PerformanceAlert.hpp"
+#include "xrCore/CLOptions.h"
 
 #ifndef _EDITOR
 #include "Environment.h"

@@ -17,6 +17,7 @@
 #include "Math/MathUtil.hpp"
 #include "xrCore/_std_extensions.h"
 #include "Threading/TaskManager.hpp"
+#include "CLOptions.h"
 
 #include "SDL.h"
 
@@ -28,6 +29,12 @@
 extern compression::ppmd::stream* trained_model;
 
 XRCORE_API xrCore Core;
+
+XRCORE_API CLOption<pstr> fsltx_path("-fsltx", "path to game config ltx", "");
+XRCORE_API CLOption<bool> shoc_flag("-shoc", "Shadow of Chernobyl Mode", false);
+XRCORE_API CLOption<bool> soc_flag("-soc", "Shadow of Chernobyl Mode", false);
+XRCORE_API CLOption<bool> cs_flag("-cs", "Clear Sky Mode", false);
+XRCORE_API CLOption<bool> cop_flag("-cop", "Call of Pripyat Mode", false);
 
 static u32 init_counter = 0;
 
@@ -200,13 +207,14 @@ const pcstr xrCore::buildBranch = MACRO_TO_STRING(GIT_INFO_CURRENT_BRANCH);
 xrCore::xrCore()
     : ApplicationName{}, ApplicationPath{},
       WorkingPath{},
-      UserName{}, CompName{}, dwFrame(0),
+      UserName{}, CompName{},
+      Params(nullptr), dwFrame(0),
       PluginMode(false)
 {
     CalculateBuildId();
 }
 
-void xrCore::Initialize(pcstr _ApplicationName, LogCallback cb, bool init_fs, pcstr fs_fname, bool plugin)
+void xrCore::Initialize(pcstr _ApplicationName, pcstr commandLine, LogCallback cb, bool init_fs, pcstr fs_fname, bool plugin)
 {
     Threading::SetThreadName(NULL, "X-Ray Primary thread");
     xr_strcpy(ApplicationName, _ApplicationName);
@@ -215,12 +223,13 @@ void xrCore::Initialize(pcstr _ApplicationName, LogCallback cb, bool init_fs, pc
         PluginMode = plugin;
         // Init COM so we can use CoCreateInstance
         // HRESULT co_res =
+        if (commandLine)
+            Params = xr_strdup(commandLine);
+        else
+            Params = xr_strdup("");
 
         CoInitializeMultithreaded();
 
-        static CLOption<bool> shoc_flag("-shoc", "Shadow of Chernobyl Mode", false);
-        static CLOption<bool> soc_flag("-soc", "Shadow of Chernobyl Mode", false);
-        static CLOption<bool> cs_flag("-cs", "Clear Sky Mode", false);
 #if defined(XR_PLATFORM_WINDOWS)
         string_path fn, dr, di;
 
@@ -248,7 +257,7 @@ void xrCore::Initialize(pcstr _ApplicationName, LogCallback cb, bool init_fs, pc
 #ifdef _EDITOR
         // working path
         static CLOption<pstr> wdir_path("-wf", "work directory", "");
-        if (wdir_path.OptionValue())
+        if (wdir_path.IsProvided())
             SetCurrentDirectory(wdir_path.OptionValue());
 #endif
 
@@ -260,7 +269,7 @@ void xrCore::Initialize(pcstr _ApplicationName, LogCallback cb, bool init_fs, pc
         /* A final decision must be made regarding the changed resources. Since only OpenGL shaders remain mandatory for Linux for the entire trilogy,
         * I propose adding shaders from /usr/share/openxray/gamedata/shaders so that we remove unnecessary questions from users who want to start
         * the game using resources not from the proposed ~/.local/share/GSC Game World/Game in this case, this section of code can be safely removed */
-        if (!fsltx_path.OptionValue())
+        if (!fsltx_path.IsProvided())
         {
             chdir(ApplicationPath);
             string_path tmp;

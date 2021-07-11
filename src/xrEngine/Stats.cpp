@@ -14,6 +14,7 @@
 #include "xrPhysics/IPHWorld.h"
 #include "PerformanceAlert.hpp"
 #include "xrCore/Threading/TaskManager.hpp"
+#include "xrCore/CLOptions.h"
 
 int g_ErrorLineCount = 15;
 Flags32 g_stats_flags = {0};

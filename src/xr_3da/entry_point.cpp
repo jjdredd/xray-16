@@ -1,3 +1,4 @@
+
 #include "stdafx.h"
 #include "resource.h"
 #if defined(XR_PLATFORM_WINDOWS)
@@ -31,6 +32,8 @@ XR_EXPORT u32 NvOptimusEnablement = 0x00000001; // NVIDIA Optimus
 XR_EXPORT u32 AmdPowerXpressRequestHighPerformance = 0x00000001; // PowerXpress or Hybrid Graphics
 }
 
+extern CLOption<pstr> fsltx_path;
+
 
 bool HandleArguments(int argc, char *argv[])
 {
@@ -63,7 +66,7 @@ bool HandleArguments(int argc, char *argv[])
     return true;
 }
 
-int entry_point()
+int entry_point(pcstr commandLine)
 {
 
     static CLOption<bool> clhelp("-help", "print this help and exit", false);
@@ -88,8 +91,7 @@ int entry_point()
     }
 
     static CLOption<bool> sv_dedicated("-dedicated", "run dedicated server", false);
-    if (sv_dedicated.OptionValue())
-        GEnv.isDedicatedServer = true;
+    GEnv.isDedicatedServer = sv_dedicated.OptionValue();
 
 #ifdef XR_PLATFORM_WINDOWS
     AccessibilityShortcuts shortcuts;
@@ -97,9 +99,8 @@ int entry_point()
         shortcuts.Disable();
 #endif
 
-    static CLOption<pstr> fsltx_path("-fsltx", "path to game config ltx", "");
 #ifdef PROFILE_TASK_SYSTEM
-    Core.Initialize("OpenXRay", nullptr, false,
+    Core.Initialize("OpenXRay",commandLine, nullptr, false,
                     fsltx_path.IsProvided() ? fsltx_path.OptionValue() : nullptr);
 
     const auto task = [](const TaskRange<int>&){};
@@ -129,7 +130,7 @@ int entry_point()
 
     const auto result = 0;
 #else
-    Core.Initialize("OpenXRay", nullptr, true,
+    Core.Initialize("OpenXRay",commandLine, nullptr, true,
                     fsltx_path.IsProvided() ? fsltx_path.OptionValue() : nullptr);
 
     const auto result = RunApplication();
@@ -159,7 +160,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, char* commandLine, int 
     {
         argv = CommandLineToArgvW(commandLine, &argc);
         if (HandleArguments(argc, argv))
-            result = entry_point();
+            result = entry_point(commandLine);
         else
             result = EXIT_FAILURE;
         LocalFree(argv);
@@ -174,9 +175,55 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, char* commandLine, int 
 #elif defined(XR_PLATFORM_LINUX)
 int main(int argc, char *argv[])
 {
+    int result = 0;
+
     if (!HandleArguments(argc, argv))
         return EXIT_FAILURE;
 
-    return entry_point();
+    try
+    {
+        char* commandLine = nullptr;
+        int i;
+        if(argc > 1)
+        {
+            size_t sum = 0;
+            for(i = 1; i < argc; ++i)
+                sum += strlen(argv[i]) + strlen(" \0");
+
+            commandLine = (char*)xr_malloc(sum);
+            ZeroMemory(commandLine, sum);
+
+            for(i = 1; i < argc; ++i)
+            {
+                strcat(commandLine, argv[i]);
+                strcat(commandLine, " ");
+            }
+        }
+        else
+            commandLine = strdup("");
+
+        result = entry_point(commandLine);
+
+        xr_free(commandLine);
+    }
+    catch (const std::overflow_error& e)
+    {
+        _resetstkoflw();
+        FATAL_F("stack overflow: %s", e.what());
+    }
+    catch (const std::runtime_error& e)
+    {
+        FATAL_F("runtime error: %s", e.what());
+    }
+    catch (const std::exception& e)
+    {
+        FATAL_F("exception: %s", e.what());
+    }
+    catch (...)
+    {
+    // this executes if f() throws std::string or int or any other unrelated type
+    }
+
+    return result;
 }
 #endif

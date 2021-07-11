@@ -2,6 +2,7 @@
 #include "Include/xrRender/DrawUtils.h"
 #include "Render.h"
 #include "xrCore/xr_token.h"
+#include "xrCore/CLOptions.h"
 #include "xrCDB/xrXRC.h"
 #include "XR_IOConsole.h"
 #include "MonitorManager.hpp"
