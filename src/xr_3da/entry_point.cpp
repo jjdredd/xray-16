@@ -175,7 +175,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, char* commandLine, int 
 #elif defined(XR_PLATFORM_LINUX)
 int main(int argc, char *argv[])
 {
-    int result = 0;
+    int result = EXIT_FAILURE;
 
     if (!HandleArguments(argc, argv))
         return EXIT_FAILURE;
